@@ -44,59 +44,64 @@ test_durations  <- loaded_data_tr['test_durations']
 #np$hs
 extract_train_position_from_file <- function(gt_pos, duration){
 
-  num_neg_calls = length(gt_pos)
-  window_size   = 0.230
-  shift         = 0.015
-  pos_window    = window_size / 2  # window around GT that is not sampled from
-  pos           = gt_pos
+  num_neg_calls <- length(gt_pos)
+  window_size   <- 0.230
+  shift         <- 0.015
+  pos_window    <- window_size / 2  # window around GT that is not sampled from
+  pos           <- gt_pos
   
   # augmentation
-  num_neg_calls = 3*num_neg_calls
+  num_neg_calls <- 3*num_neg_calls
   
-  pos = np$hstack(c(lapply(gt_pos, function(x) x - shift), 
+  pos <- np$hstack(c(lapply(gt_pos, function(x) x - shift), 
                     gt_pos, 
                     lapply(gt_pos, function(x) x + shift)))
   
   # sample a set of negative locations - need to be sufficiently far away from GT
   #c(0 - window_size, gt_pos[[1]], duration - window_size)
   #pos
-  pos_pad = np$hstack(c(0 - window_size, gt_pos[[1]], duration - window_size))
-  neg     = c()
-  cnt     = 0
-  browser()
+  pos_pad <- np$hstack(c(0 - window_size, gt_pos[[1]], duration - window_size))
+  neg     <- c()
+  cnt     <- 0
   while(cnt < num_neg_calls){
-    rand_pos = np$random$random()*max(pos_pad)
+    rand_pos <- np$random$random()*max(pos_pad)
     if(mean((np$abs(pos_pad - rand_pos) > (pos_window + shift))) == 1){
-      neg = c(neg, rand_pos)
-      cnt = cnt + 1
-      neg = np$asarray(neg)
+      neg <- c(neg, rand_pos)
+      cnt <- cnt + 1
+      neg <- np$asarray(neg)
     }
   }
-  browser()
   # sort them
-  positions   = np$hstack(c(pos, neg))
-  sorted_inds = np$argsort(positions)
-  positions   = positions[sorted_inds]
+  positions   <- np$hstack(c(pos, neg))
+  sorted_inds <- np$argsort(positions)
+  positions   <- positions[sorted_inds]
   
   # create labels
-  
-  class_labels = np$vstack(c(np$ones(c(pos$shape[1],1)), np$zeros(c(pos$shape[1],1))))
-  class_labels = class_labels[sorted_inds]
-  
-  return(list(positions, class_labels))
+  #np$ones(tuple(as.integer(length(pos)),1L))
+  len_pos <- as.integer(length(pos))
+  len_neg <- as.integer(length(neg))
+  class_labels <- np$vstack(c(np$ones(c(len_pos,1L)), np$zeros(c(len_neg,1L))))
+  class_labels <- class_labels[sorted_inds]
+  #list(positions, class_labels)
+  return(list('positions'=positions, 'class_labels'=class_labels))
 }
 
 generate_training_positions <- function(files, gt_pos, durations){
-  pos_list = list()
-  for(ii in 1:length(files)){
-    pos_list = append(pos_list, extract_train_position_from_file(gt_pos[ii], durations[ii]))
-  }
-  #pos_list = extract_train_position_from_file()
+  pos_list <- list()
+  file_nums <- 1:length(files)
+  #for(ii in 1:length(files)){
+  #  pos_list <- append(pos_list, extract_train_position_from_file(gt_pos[ii], durations[ii]))
+  #}
+  #browser()
+  pos_list <- lapply(file_nums, function(ii) extract_train_position_from_file(gt_pos[ii], durations[ii]))
+  #pos_list
+  #pos_list <- extract_train_position_from_file()
   return(pos_list)
 }
 
-generate_training_positions(train_files, train_pos, train_durations)
+pos_label_list <- generate_training_positions(train_files, train_pos, train_durations)
 
+pos_label_list
 #model.train(train_files, train_pos, train_durations)
 
-train_pos[[1000]][4]
+cnn_train <- 
