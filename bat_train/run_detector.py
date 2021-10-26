@@ -111,7 +111,7 @@ if __name__ == "__main__":
     params = DataSetParams()
 
     # load data -
-    data_dir   = 'data/labelled_data/bulgaria/test/' # path of the data that we run the model on
+    data_dir   = 'data/labelled_data/'+params.test_set+'/test/' # path of the data that we run the model on
     op_ann_dir = 'results/detections/'      # where we will store the outputs
     op_file_name_total = op_ann_dir + 'op_file.csv'
     if not os.path.isdir(op_ann_dir):

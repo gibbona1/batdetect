@@ -13,6 +13,7 @@ class DataSetParams:
         self.detection()
 
         # data
+        self.test_set  = 'norfolk'  # can be one of: bulgaria, uk, norfolk
         self.spec_dir  = ''
         self.audio_dir = ''
 
@@ -40,7 +41,7 @@ class DataSetParams:
         # CNN params
         self.learn_rate = 0.001
         self.moment     = 0.9
-        self.num_epochs = 10#25
+        self.num_epochs = 25
         self.batchsize  = 256
         self.net_type   = 'big'  # big, small
 
@@ -76,7 +77,7 @@ class DataSetParams:
         self.fft_overlap    = 0.75     # this is a percent - previously was 768/1024
         self.time_per_slice = ((1-self.fft_overlap)*self.fft_win_length)
 
-        self.denoise      = True
+        self.denoise      = True 
         self.mean_log_mag = 0.5  # sensitive to the spectrogram scaling used
         self.smooth_spec  = True # gaussian filter
 

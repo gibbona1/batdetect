@@ -305,7 +305,7 @@ def compute_position_from_segment(spec, file_duration, params):
     # connected component and filter by size
     label_im, num_labels = scipy.ndimage.label(spec_t_morph)
     sizes     = scipy.ndimage.sum(spec_t_morph, label_im, range(num_labels + 1))
-    mean_vals = scipy.ndimage.sum(spec, label_im, range(1, num_labels + 1))
+    #mean_vals = scipy.ndimage.sum(spec, label_im, range(1, num_labels + 1))
     mask_size = sizes < params.min_region_size
     remove_pixel = mask_size[label_im]
     label_im[remove_pixel] = 0

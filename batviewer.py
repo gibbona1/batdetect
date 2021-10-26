@@ -5,7 +5,7 @@ Simple viewer for Batdetect data.
 @author: David 
 https://github.com/davidmam/batdetect
 """
-import os,struct
+import os, struct
 import wave, io, csv
 import matplotlib.pyplot as plt
 import scipy.signal as sig, numpy as np
@@ -26,10 +26,10 @@ class SpecViewer (tk.Frame):
     def createWidgets(self):
         menu = tk.Menu(self.master)
         self.master.config(menu=menu)
-        file=tk.Menu(menu)
+        file = tk.Menu(menu)
         file.add_command(label="Exit", command=self.client_exit)
         menu.add_cascade(label='File', menu=file)
-        settings=tk.Menu(menu)
+        settings = tk.Menu(menu)
         settings.add_command(label="Audio Folder", command=self.set_AudioFolder)
         settings.add_command(label="Analysis Folder", command=self.set_AnalysisFolder)
         settings.add_command(label="Spectrogram Settings", command=self.set_SpectrogramSettings)
@@ -47,77 +47,79 @@ class SpecViewer (tk.Frame):
         self.audioframe.pack(fill="x", side='top')
         #self.audioframe.grid(sticky=tk.W+tk.E)
         self.audiofiles_lb = tk.Listbox(self.audioframe)
-        self.audiofiles_lb.grid(row = 0, column=1, rowspan=4, sticky=tk.N+tk.S)
+        self.audiofiles_lb.grid(row = 0, column = 1, rowspan = 4, sticky = tk.N+tk.S)
         self.audiofiles_sb = tk.Scrollbar(self.audioframe)
-        self.audiofiles_sb.grid(row = 0, column=2, rowspan=4, sticky=tk.N+tk.S)
-        self.audiofiles_lb.config( yscrollcommand = self.audiofiles_sb.set)
+        self.audiofiles_sb.grid(row = 0, column = 2, rowspan = 4, sticky = tk.N+tk.S)
+        self.audiofiles_lb.config(yscrollcommand = self.audiofiles_sb.set)
         self.audiofiles_lb.bind('<<ListboxSelect>>',self.selectAudio)
-        self.audiofiles_sb.config(command=self.audiofiles_lb.yview)
-        self.audioframe.grid_columnconfigure(0, weight=1)
-        self.lbl_temp = tk.Label(self.audioframe, text='No audio file selected')
-        self.lbl_temp.grid(row=0, column=0, sticky=tk.E+tk.W)
+        self.audiofiles_sb.config(command = self.audiofiles_lb.yview)
+        self.audioframe.grid_columnconfigure(0, weight = 1)
+        self.lbl_temp = tk.Label(self.audioframe, text = 'No audio file selected')
+        self.lbl_temp.grid(row = 0, column = 0, sticky = tk.E+tk.W)
         self.audiofiles_lb.insert(tk.END, "No audio files loaded")
         # analysis summary.
-        self.analysisblock= tk.Frame(self.audioframe)
-        self.analysisblock.grid(sticky=tk.N+tk.S+tk.W+tk.E, row=3)
+        self.analysisblock = tk.Frame(self.audioframe)
+        self.analysisblock.grid(sticky = tk.N+tk.S+tk.W+tk.E, row = 3)
         
-        self.analysissummary = tk.Label(self.analysisblock,text='No analysis file loaded')
-        self.analysissummary.grid(row=0, column=0, columnspan=6, sticky=tk.E+tk.W)
-        self.analysisthreshold = tk.Label(self.analysisblock, text='Threshold: 0.5')
-        self.analysisthreshold.grid(row=1, column=0)
-        self.timestart_lbl = tk.Label(self.analysisblock, text="Start time")
-        self.timestart_lbl.grid(row=1,column =1, sticky=tk.E+tk.W)
-        self.timestart_sld = tk.Scale(self.analysisblock , from_=0, to=15, resolution=0.5, orient=tk.HORIZONTAL, command=self.settimestart)
+        self.analysissummary = tk.Label(self.analysisblock, text = 'No analysis file loaded')
+        self.analysissummary.grid(row = 0, column = 0, columnspan = 6, sticky = tk.E+tk.W)
+        self.analysisthreshold = tk.Label(self.analysisblock, text = 'Threshold: 0.5')
+        self.analysisthreshold.grid(row = 1, column = 0)
+        self.timestart_lbl = tk.Label(self.analysisblock, text = "Start time")
+        self.timestart_lbl.grid(row = 1,column = 1, sticky = tk.E+tk.W)
+        self.timestart_sld = tk.Scale(self.analysisblock , from_ = 0, to = 15, resolution = 0.5, orient = tk.HORIZONTAL, command = self.settimestart)
         self.timestart_sld.set(0)
-        self.timestart_sld.grid(row=2,column =1, sticky=tk.E+tk.W)
-        self.timezoom_lbl = tk.Label(self.analysisblock, text="Time window")
-        self.timezoom_lbl.grid(row=1, column =2, sticky=tk.E+tk.W)
-        self.timezoom_sld = tk.Scale(self.analysisblock , from_=1, to=15, resolution=0.5, orient=tk.HORIZONTAL, command=self.settimezoom)
+        self.timestart_sld.grid(row = 2,column = 1, sticky = tk.E+tk.W)
+        self.timezoom_lbl = tk.Label(self.analysisblock, text = "Time window")
+        self.timezoom_lbl.grid(row = 1, column = 2, sticky = tk.E+tk.W)
+        self.timezoom_sld = tk.Scale(self.analysisblock , from_ = 1, to = 15, resolution = 0.5, orient = tk.HORIZONTAL, command = self.settimezoom)
         self.timezoom_sld.set(15)
-        self.timezoom_sld.grid(row=2,column =2, sticky=tk.E+tk.W)
-        self.freqstart_lbl = tk.Label(self.analysisblock, text="Start frequency")
-        self.freqstart_lbl.grid(row=1,column =3, sticky=tk.E+tk.W)
-        self.freqstart_sld = tk.Scale(self.analysisblock , from_=0, to=0, resolution=1000, orient=tk.HORIZONTAL, command=self.setfreqstart)
+        self.timezoom_sld.grid(row = 2, column = 2, sticky = tk.E+tk.W)
+        self.freqstart_lbl = tk.Label(self.analysisblock, text = "Start frequency")
+        self.freqstart_lbl.grid(row = 1, column = 3, sticky=tk.E+tk.W)
+        self.freqstart_sld = tk.Scale(self.analysisblock , from_ = 0, to = 0, resolution = 1000, orient = tk.HORIZONTAL, command = self.setfreqstart)
         self.freqstart_sld.set(0)
-        self.freqstart_sld.grid(row=2,column =3, sticky=tk.E+tk.W)
-        self.freqzoom_lbl = tk.Label(self.analysisblock, text="Frequency window")
-        self.freqzoom_lbl.grid(row=1,column =4, sticky=tk.E+tk.W)
-        self.freqzoom_sld = tk.Scale(self.analysisblock , from_=0, to=96000, resolution=1000, orient=tk.HORIZONTAL, command=self.setfreqzoom)
+        self.freqstart_sld.grid(row=2,column = 3, sticky = tk.E+tk.W)
+        self.freqzoom_lbl = tk.Label(self.analysisblock, text = "Frequency window")
+        self.freqzoom_lbl.grid(row=1,column = 4, sticky = tk.E+tk.W)
+        self.freqzoom_sld = tk.Scale(self.analysisblock , from_ = 0, to = 96000, resolution = 1000, orient = tk.HORIZONTAL, command = self.setfreqzoom)
         self.freqzoom_sld.set(96000)
-        self.freqzoom_sld.grid(row=2,column =4, sticky=tk.E+tk.W)
-        self.imagedraw_btn = tk.Button(self.analysisblock, text="Update Plot", command=self.replot_image)
-        self.imagedraw_btn.grid(column=5, row=1, rowspan=2,sticky=tk.E+tk.W+tk.N+tk.S)
-        self.colormap_lbl = tk.Label(self.analysisblock, text="Spectrum colours")
-        self.colormap_lbl.grid(columnspan=2, column=6, row=1)
-        self.colormapchooser = tk.Listbox(self.analysisblock, height=1)
+        self.freqzoom_sld.grid(row = 2,column = 4, sticky = tk.E+tk.W)
+        self.imagedraw_btn = tk.Button(self.analysisblock, text = "Update Plot", command = self.replot_image)
+        self.imagedraw_btn.grid(column = 5, row = 1, rowspan = 2, sticky = tk.E+tk.W+tk.N+tk.S)
+        self.colormap_lbl  = tk.Label(self.analysisblock, text = "Spectrum colours")
+        self.colormap_lbl.grid(columnspan = 2, column = 6, row = 1)
+        self.colormapchooser = tk.Listbox(self.analysisblock, height = 1)
         for m in dir(plt.cm):
             if type(getattr(plt.cm,m)).__name__.endswith('Colormap'):
                 self.colormapchooser.insert(tk.END, m)
-        self.colormap_sb = tk.Scrollbar(self.analysisblock )
+        self.colormap_sb = tk.Scrollbar(self.analysisblock)
         self.colormapchooser.config(yscrollcommand = self.colormap_sb.set)
-        self.colormap_sb.config(command=self.colormapchooser.yview)
-        self.colormapchooser.grid(row=2,column=6)
-        self.colormap_sb.grid(row=2,column=7)
-        self.thresholdslider = tk.Scale(self.analysisblock,from_=0.0, to=1.0, 
-                                        resolution=0.01, orient=tk.HORIZONTAL, command=self.setthreshold)
+        self.colormap_sb.config(command = self.colormapchooser.yview)
+        self.colormapchooser.grid(row = 2, column = 6)
+        self.colormap_sb.grid(row = 2, column = 7)
+        self.thresholdslider = tk.Scale(self.analysisblock, from_ = 0.0, to = 1.0, 
+                                        resolution = 0.01, orient = tk.HORIZONTAL, command = self.setthreshold)
         self.thresholdslider.set(0.8)
-        self.thresholdslider.grid(row=2, column=0, sticky=tk.E+tk.W)
+        self.thresholdslider.grid(row = 2, column = 0, sticky = tk.E+tk.W)
         for n in range(5):
-            self.analysisblock.columnconfigure(n,weight=1)
+            self.analysisblock.columnconfigure(n, weight = 1)
         
-        self.imageframe=tk.Frame(self,bg='#fff')
+        self.imageframe = tk.Frame(self, bg = '#fff')
         #self.imageframe.grid(sticky=tk.N+tk.S+tk.W+tk.E)
-        self.imageframe.pack(fill="both", expand=True)
+        self.imageframe.pack(fill = "both", expand = True)
         self.imageframe.bind('<Configure>', self.resize_image)
-        self.sview=tk.Canvas(self.imageframe, bg='#3288bd',#'#f00', 
-                             height=400, width=800)
+        self.sview=tk.Canvas(self.imageframe, bg = '#3288bd',#'#f00', 
+                             height = 500, width = 1000)
         #self.sview.grid(sticky=tk.N+tk.S+tk.W+tk.E)#        
-        self.sview.pack(fill="both", expand=True)
+        self.sview.pack(fill = "both", expand = True)
     
     def replot_image(self):
-        cm=self.colormapchooser.curselection()
-        self.colormap = getattr(plt.cm, cm)
-        self.resize_image(1)
+        ndex = self.colormapchooser.curselection()
+        if ndex != ():
+            cm = self.colormapchooser.get(ndex)
+            self.colormap = getattr(plt.cm, cm)
+            self.resize_image(1)
         
     def settimestart (self, value):
         '''
@@ -294,6 +296,7 @@ class SpecViewer (tk.Frame):
         self.analysisdirectory = gafd
         count = 0
         for file in os.listdir(self.analysisdirectory):
+            print(file[-14:])
             if file[-4:]=='.csv':
                 if file[:-14] in self.audiofiles:
                     self.audiofiles[file[:-14]]['analysis'] = file
@@ -302,7 +305,7 @@ class SpecViewer (tk.Frame):
         self.lbl_temp.config(text='{} audio files found. {} analysis files found and linked.'.format(len(self.audiofiles),count))
         print("{} analysis files found and linked".format(count))
         
-    def set_SpectrogramSettings():
+    def set_SpectrogramSettings(self):
         '''
         Launches a settings window
 
@@ -380,7 +383,7 @@ class SpecViewer (tk.Frame):
         self.freqzoom_sld.set(self.limits[3])
         
         data = self.wavfile.readframes(self.audioparams.nframes)
-        self.audio = struct.unpack('{}h'.format(self.audioparams.nframes),data)
+        self.audio = struct.unpack('{}h'.format(self.audioparams.nframes), data)
         fh   = open(self.wavfilename, 'rb')
         head = fh.read(500)
         self.audiocomment = ''
@@ -415,7 +418,7 @@ class SpecViewer (tk.Frame):
     
     def draw_spectrogram(self):
         #get size for the canvas
-        print('foo')
+        print('drawing spectrogram')
         dims = self.getspecsize()
         fig  = plt.figure(dpi=100, figsize=((dims[0]-10)/100, (dims[1]-10)/100))
         ax   = fig.add_subplot(1,1,1)
@@ -424,9 +427,9 @@ class SpecViewer (tk.Frame):
         txt = self.sview.create_text(dims[0]/2, dims[1]/2, text='Generating Spectrogram. Please wait ... ')
         self.sview.pack()
 
-        p,freqs,bins,im = ax.specgram(self.audio, NFFT=1024, Fs=self.audioparams.framerate, cmap=self.colormap,noverlap=512)
-        print('foobar')
-        self.imbounds=im.get_window_extent().extents
+        p,freqs,bins,im = ax.specgram(self.audio, NFFT=1024, Fs=self.audioparams.framerate, cmap=self.colormap, noverlap=512)
+        print('get spectrogram')
+        self.imbounds = im.get_window_extent().extents
         
         ax.set_xlim(self.plotlimits[0],self.plotlimits[1])
         ax.set_ylim(self.plotlimits[2],self.plotlimits[3])
@@ -434,18 +437,18 @@ class SpecViewer (tk.Frame):
         ax.set_xlabel('Time (seconds)')
         fig.colorbar(im).set_label('Intensity [dB]')
 
-        self.fullrange=im.get_window_extent().extents
+        self.fullrange = im.get_window_extent().extents
         buf = io.BytesIO()
-        print('foobar2')
+        print('save spectrogram figure')
         fig.savefig(buf, format='png')
         buf.seek(0)
         self.specim = Image.open(buf)
-        print(self.specim)
+        print('self.specim:', self.specim)
         #self.specim.show()
         self.specpim = ImageTk.PhotoImage(self.specim)
-        print(self.specpim)
+        print('self.specpim:', self.specpim)
         
-        self.specimg = self.sview.create_image(dims[0]//2,dims[1]//2,image=self.specpim)
+        self.specimg = self.sview.create_image(dims[0]//2, dims[1]//2, image = self.specpim)
         print(self.specimg)
         self.sview.delete(txt)
         self.sview.pack()
@@ -514,29 +517,27 @@ class SpecViewer (tk.Frame):
         # range of data is in self.limits
         # area plottable is in self.imbounds (x0,y0,x1,y1)
         # virtual plot is in self.fullrange
-        if not hasattr(self, 'observations') or self.observations is None:
+        if not hasattr(self, 'observations'):# or self.observations is None:
             return
         #example to show boundaries
-        px = int(self.imbounds[0])+5 #hardcoded the offset for the image sizeas it is 10px smaller than the canvas. need to get the padding 
+        px = int(self.imbounds[0])+5 #hardcoded the offset for the image size as it is 10px smaller than the canvas. need to get the padding 
         py = int(self.imbounds[1])+5
         pw = int(self.imbounds[2]-self.imbounds[0])
         ph = int(self.imbounds[3]-self.imbounds[1])
-        print(px,py,pw,ph)
+        print(px, py, pw, ph)
         minx = self.limits[0]
         maxx = self.limits[1]
         print('drawing analysis')
         #self.sview.create_rectangle(px,py, px+100, py+100, outline="#ff0" )
         #self.sview.pack()
-        fw = int(self.fullrange[2] -self.fullrange[0]) 
+        fw = int(self.fullrange[2] - self.fullrange[0]) 
         fx = int(self.fullrange[0])
         foffset = int(self.imbounds[0] - self.fullrange[0])
         scale   = fw/pw
         
-        pb = py+ph -10
+        pb = py + ph - 10
         
         #for any point x coordinate is foffset + scale*(x-minx)/(maxx-minx)
-        #print('hasattr(self, "observations")', hasattr(self, 'observations'))
-        #print('self.observations',self.observations)
         for o in self.observations:
             col = '#3288bd' #'#f00'
             if o['score']<self.thresholdslider.get():
@@ -554,7 +555,7 @@ class SpecViewer (tk.Frame):
              #   xm=xm+fx
               #  xe=xe+x
                 self.markers.append(self.sview.create_polygon(xs,pb,xm,pt,xe,pb,xs,pb, tag='analysis', outline=col,fill=col))
-            print(xs, xm, xe,pb,pt)
+            print(xs, xm, xe, pb, pt)
         # add some test markers for calibration
         for b in ((0,0.5), (1,2), (3,4), (5,5.2), (6,6.5)):
             xs = int(fx + fw * (b[0]-minx)/(maxx-minx)) +5

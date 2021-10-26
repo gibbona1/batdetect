@@ -39,13 +39,17 @@ if __name__ == '__main__':
     The results can vary by a few percent from run to run. If you don't want to
     run a specific model or baseline comment it out.
     """
+    # load parameters
+    params = DataSetParams()
 
-    test_set      = 'uk'  # can be one of: bulgaria, uk, norfolk
+    test_set      = params.test_set
     data_set      = 'data/train_test_split/test_set_' + test_set + '.npz'
     raw_audio_dir = 'data/wav/'
     base_line_dir = 'data/baselines/'
     result_dir    = 'results/'
     model_dir     = 'data/models/'
+    params.audio_dir = raw_audio_dir
+
     if not os.path.isdir(result_dir):
         os.mkdir(result_dir)
     if not os.path.isdir(model_dir):
@@ -62,10 +66,6 @@ if __name__ == '__main__':
     test_files      = loaded_data_tr['test_files']
     test_durations  = loaded_data_tr['test_durations']
 
-    # load parameters
-    params = DataSetParams()
-    params.audio_dir = raw_audio_dir
-
     train_files_decode = [s.decode() for s in train_files]
     test_files_decode  = [s.decode() for s in test_files]
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     test_positions, test_class_labels   = generate_training_positions(test_files_decode, test_pos, test_durations)
 
     train_features, train_labels = get_audio_features_and_labels(train_class_labels, train_positions, train_durations, train_paths_decode, params)
-    test_features, test_labels   = get_audio_features_and_labels(test_class_labels, test_positions, train_durations, test_paths_decode, params)
+    test_features, test_labels   = get_audio_features_and_labels(test_class_labels, test_positions, test_durations, test_paths_decode, params)
     
     train_features = np.expand_dims(train_features,-1)
     test_features  = np.expand_dims(test_features,-1)
@@ -85,6 +85,10 @@ if __name__ == '__main__':
     
     train_ds   = tf.data.Dataset.from_tensor_slices((train_features, train_labels))
     test_ds    = tf.data.Dataset.from_tensor_slices((test_features, test_labels))
+
+    # perfect shuffling, i.e. all training elements shufled
+    train_ds.shuffle(len(train_ds))
+
     batch_size = params.batchsize
     train_ds   = train_ds.batch(batch_size)
     test_ds    = test_ds.batch(batch_size)
@@ -95,6 +99,14 @@ if __name__ == '__main__':
                          yaxis_title = 'Precision',
                          width       = 900,
                          height      = 750)
+
+    auc_fig = go.Figure()
+    auc_fig.update_layout(title = 'ROC Curve, '+ test_set,
+                    xaxis_title = 'False Positive Rate',
+                    yaxis_title = 'True Positive Rate',
+                    width       = 900,
+                    height      = 750)
+    
     #
     #CNN big
     print('\ncnn big')
@@ -111,6 +123,10 @@ if __name__ == '__main__':
     pr_fig.add_trace(go.Scatter(x = rec_cnn_big, y = prec_cnn_big, 
                                 mode = 'lines', name = 'CNN',
                                 line = dict(color='#1f77b4')))
+    auc_fig.add_trace(go.Scatter(x = fpr, y = tpr, 
+                            mode = 'lines', name = 'CNN',
+                            text = 'AUC='+str(round(roc_auc_score(y_true, y_pred_proba),3)),
+                            line = dict(color='#1f77b4')))
     #
     # CNN small
     print('\ncnn small')
@@ -126,30 +142,40 @@ if __name__ == '__main__':
     pr_fig.add_trace(go.Scatter(x = rec_cnn_small, y = prec_cnn_small, 
                             mode = 'lines', name = 'CNN<sub>Fast<sub>',
                             line = dict(color='black')))
+    auc_fig.add_trace(go.Scatter(x = fpr, y = tpr, 
+                            mode = 'lines', name = 'CNN<sub>Fast<sub>',
+                            text = 'AUC='+str(round(roc_auc_score(y_true, y_pred_proba),3)),
+                            line = dict(color='black')))
     
     #
     # random forest
     print('\nrandom forest')
     params.classification_model = 'rf_vanilla'
     # train and test
-    train_features_flat = train_features.reshape(train_features.shape[0], train_features.shape[1]*train_features.shape[2])
+    train_features_s    = np.array([x for x,_ in train_ds.unbatch()]) # shuffled
+    train_features_flat = train_features_s.reshape(train_features_s.shape[0], train_features_s.shape[1]*train_features_s.shape[2])
     test_features_flat  = test_features.reshape(test_features.shape[0], test_features.shape[1]*test_features.shape[2])
 
     rf_model = RandomForestClassifier(
-        n_jobs=-1,
-        n_estimators = params.trees,
-        max_depth    = params.depth,
+        n_jobs            = -1,
+        n_estimators      = params.trees,
+        max_depth         = params.depth,
         min_samples_split = params.min_cnt)
     print('Fitting Random Forest Classifier')
     rf_model.fit(train_features_flat, train_labels)
     print('Done')
     # compute precision recall
     y_pred_proba_rf = rf_model.predict_proba(test_features_flat)[:,1]
+    fpr_rf, tpr_rf, _  = roc_curve(y_true,  y_pred_proba_rf)
     prec_rf, rec_rf = prec_recall_curves(y_true,  y_pred_proba_rf)
     # save
     joblib.dump(rf_model, result_dir+test_set+"random_forest.joblib")
     pr_fig.add_trace(go.Scatter(x = rec_rf, y = prec_rf, 
                             mode = 'lines', name = 'Random Forest',
+                            line = dict(color='forestgreen')))
+    auc_fig.add_trace(go.Scatter(x = fpr_rf, y = tpr_rf, 
+                            mode = 'lines', name = 'Random Forest',
+                            text = 'AUC='+str(round(roc_auc_score(y_true, y_pred_proba_rf),3)),
                             line = dict(color='forestgreen')))
 
     #
@@ -171,13 +197,18 @@ if __name__ == '__main__':
         lgb_model.fit(train_features_flat, train_labels)
         print('Done')
         # compute precision recall
-        y_pred_proba_lgb = lgb_model.predict_proba(test_features_flat)[:,1]
-        prec_lgb, rec_lgb = prec_recall_curves(y_true,  y_pred_proba_lgb)
+        y_pred_proba_lgb   = lgb_model.predict_proba(test_features_flat)[:,1]
+        fpr_lgb, tpr_lgb, _  = roc_curve(y_true,  y_pred_proba_lgb)
+        prec_lgb, rec_lgb  = prec_recall_curves(y_true,  y_pred_proba_lgb)
         # save
         joblib.dump(lgb_model, result_dir+test_set+"lightgbm.joblib")
         pr_fig.add_trace(go.Scatter(x = rec_lgb, y = prec_lgb, 
                                 mode = 'lines', name = 'Light GBM',
                                 line = dict(color='lightyellow')))
+        auc_fig.add_trace(go.Scatter(x = fpr_lgb, y = tpr_lgb, 
+                            mode = 'lines', name = 'Light GBM',
+                            text = 'AUC='+str(round(roc_auc_score(y_true, y_pred_proba_rf),3)),
+                            line = dict(color='lightyellow')))
 
     #
     # segment
@@ -236,5 +267,15 @@ if __name__ == '__main__':
     #pr_fig.show()
     print('Saving precision-recall curve')
     pr_fig.write_html(result_dir + test_set + '_results.html')
+    #pr_fig.write_image(result_dir + test_set + '_results.pdf')  
+        
+    
+    baseline_vals = np.arange(0.0,1.0,0.0100)
+    auc_fig.add_trace(go.Scatter(x = baseline_vals, y = baseline_vals, 
+                            mode = 'lines', name = 'Baseline',
+                            line = dict(color='black', dash='dash')))
+    #auc_fig.show()
+    print('Saving ROC curve')
+    auc_fig.write_html(result_dir + test_set + '_roc_curve.html')
     #pr_fig.write_image(result_dir + test_set + '_results.pdf')
-    print('Done run_comparison.py')    
+    print('Done run_comparison.py')
