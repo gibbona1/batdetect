@@ -1,16 +1,16 @@
 from scipy.io import wavfile
 import numpy as np
-import pickle
+#import pickle
 import os
 import glob
 import time
 import write_op as wo
 from data_set_params import DataSetParams
-import sys
+#import sys
 import tensorflow as tf
-from tensorflow.keras import models, layers, regularizers
+#from tensorflow.keras import models, layers, regularizers
 from helper_fns import compute_features, nms_1d
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter1d
 
 
@@ -59,27 +59,20 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
         st_pos      = int(st_position*samp_rate)
         en_pos      = int(st_pos + params.chunk_size*samp_rate)
         audio_chunk = audio[st_pos:en_pos]
-        # make predictions
-        chunk_spec = compute_features(audio_chunk, samp_rate, params)
-        chunk_spec = np.squeeze(chunk_spec)
-        chunk_spec = np.expand_dims(chunk_spec,-1)
         
-        det_pred = det.predict(chunk_spec)
+        # make predictions
+        chunk_spec  = compute_features(audio_chunk, samp_rate, params)
+        chunk_spec  = np.squeeze(chunk_spec)
+        chunk_spec  = np.expand_dims(chunk_spec,-1)
+        
+        det_pred    = det.predict(chunk_spec)
         
         if params.smooth_op_prediction:
             det_pred = gaussian_filter1d(det_pred, params.smooth_op_prediction_sigma, axis=0)
+        
         pos, prob = nms_1d(det_pred[:,0], params.nms_win_size, file_dur)
-        #pos      = np.argmax(det_pred, axis=-1)
-        prob = prob[:,0]
-        #print('pos.shape', pos.shape)
-        #print('prob.shape', prob.shape)
-        #prob     = det_pred[:, 0]
-        #print('(prob >= detection_thresh).shape', (prob >= detection_thresh).shape)
-        #print('(pos < (params.chunk_size-(params.window_size/2.0)).shape',
-        #(pos < (params.chunk_size-(params.window_size/2.0))).shape)
-        #print((prob >= detection_thresh) & (pos < (params.chunk_size-(params.window_size/2.0))))
-        #print(chunk_id)
-        #print(len(st_positions)-1)
+        prob      = prob[:,0]
+        
         # remove predictions near the end (if not last chunk) and ones that are
         # below the detection threshold
         if chunk_id == (len(st_positions)-1):
@@ -88,9 +81,6 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
             inds = np.logical_and((prob >= detection_thresh), (pos < (params.chunk_size-(params.window_size/2.0))))
 
         # convert detection time back into global time and save valid detections
-        #print('inds.shape', inds.shape)
-        #print('inds', inds)
-        #print('st_position',st_position)
         if pos.shape[0] > 0:
             det_time.append(pos[inds] + st_position)
             det_prob.append(prob[inds])
@@ -116,7 +106,7 @@ if __name__ == "__main__":
     # params
     detection_thresh  = 0.80  # make this smaller if you want more calls detected
     do_time_expansion = True  # set to True if audio is not already time expanded
-    save_res = True
+    save_res          = True  # save detections
 
     params = DataSetParams()
 
@@ -129,15 +119,13 @@ if __name__ == "__main__":
 
     # load gpu lasagne model
     model_dir  = 'results/bulgaria_big_cnn'
-    #model_file = model_dir + 'test_set_bulgaria.mod'
-    #with open(model_file, 'rb') as mod_f:
-    #    det = pickle.load(mod_f)
+
     det = tf.keras.models.load_model(model_dir)
 
     params.chunk_size = 4.0
 
     # read audio files
-    audio_files = glob.glob(data_dir + '*.wav')[:100]
+    audio_files = glob.glob(data_dir + '*.wav')[:5]
     #print(audio_files)
     # loop through audio files
     results = []

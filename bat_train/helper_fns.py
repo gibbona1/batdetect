@@ -220,7 +220,7 @@ def create_or_load_features(params, file_name=None, audio_samples=None, sampling
         if params.load_features_from_file:
             features = np.load(params.spec_dir + file_name + '.npy')
         else:
-            sampling_rate, audio_samples = wavfile.read(params.audio_dir + file_name + '.wav')
+            sampling_rate, audio_samples = wavfile.read(file_name + '.wav')
             features = compute_features(audio_samples, sampling_rate, params)
 
     return features

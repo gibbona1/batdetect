@@ -15,7 +15,7 @@ def cnn_all(train_ds, test_ds, params, input_shape, size = 'small', save_dir='')
     print(model.summary())
 
     model.compile(
-    optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001),
+    optimizer = tf.keras.optimizers.Adam(learning_rate=params.learn_rate),
     loss      = tf.keras.losses.SparseCategoricalCrossentropy(),#from_logits=True),
     metrics   = 'accuracy',#tf.keras.metrics.SparseCategoricalAccuracy(),
     )
@@ -23,7 +23,7 @@ def cnn_all(train_ds, test_ds, params, input_shape, size = 'small', save_dir='')
     history = model.fit(train_ds, 
     validation_data = test_ds,  
     epochs          = params.num_epochs,
-    callbacks       = tf.keras.callbacks.EarlyStopping(verbose=1, patience=2)
+    #callbacks       = tf.keras.callbacks.EarlyStopping(verbose=1, patience=2)
     )
 
     metrics = history.history
@@ -41,7 +41,7 @@ def cnn_all(train_ds, test_ds, params, input_shape, size = 'small', save_dir='')
                       yaxis_title = 'Loss')
 
     print('Saving CNN Loss curve')
-    fig.write_image(save_dir + '_'+size+'_cnn_loss.pdf')
+    #fig.write_image(save_dir + '_'+size+'_cnn_loss.pdf')
     fig.write_html(save_dir  + '_'+size+'_cnn_loss.html')
 
     fig = go.Figure()
@@ -56,7 +56,7 @@ def cnn_all(train_ds, test_ds, params, input_shape, size = 'small', save_dir='')
                       yaxis_title = 'Accuracy')
 
     print('Saving CNN Accuracy curve')
-    fig.write_image(save_dir + '_'+size+'_cnn_acc.pdf')
+    #fig.write_image(save_dir + '_'+size+'_cnn_acc.pdf')
     fig.write_html(save_dir  + '_'+size+'_cnn_acc.html')
 
     return model

@@ -38,11 +38,14 @@ class DataSetParams:
         self.tests   = 5000
 
         # CNN params
-        self.learn_rate = 0.01
+        self.learn_rate = 0.001
         self.moment     = 0.9
-        self.num_epochs = 25
+        self.num_epochs = 10#25
         self.batchsize  = 256
         self.net_type   = 'big'  # big, small
+
+        # lightgbm params
+        self.lightgbm = False
 
         # segment params - these were cross validated on validation set
         self.median_mult     = 5.0  # how much to treshold spectrograms - higher will mean less calls
@@ -62,7 +65,7 @@ class DataSetParams:
         self.run_parallel    = True
         self.num_processes   = 10
         self.add_extra_calls = True  # sample some other positive calls near the GT
-        self.aug_shift       = 0.015  # unit seconds, add extra call either side of GT if augmenting
+        self.aug_shift       = 0.015 # unit seconds, add extra call either side of GT if augmenting
 
     def spectrogram_params(self):
 
@@ -70,12 +73,12 @@ class DataSetParams:
 
         # spectrogram generation
         self.fft_win_length = 0.02322  # ie 1024/44100.0 about 23 msecs.
-        self.fft_overlap    = 0.75  # this is a percent - previously was 768/1024
+        self.fft_overlap    = 0.75     # this is a percent - previously was 768/1024
         self.time_per_slice = ((1-self.fft_overlap)*self.fft_win_length)
 
         self.denoise      = True
         self.mean_log_mag = 0.5  # sensitive to the spectrogram scaling used
-        self.smooth_spec  = True  # gaussian filter
+        self.smooth_spec  = True # gaussian filter
 
         # throw away unnecessary frequencies, keep from bottom
         # TODO this only makes sense as a frequency when you know the sampling rate

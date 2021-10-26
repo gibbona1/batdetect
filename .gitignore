@@ -9,3 +9,6 @@ bat_train/data/train_test_split
 bat_train/data/wav
 bat_train/data/labelled_data
 bat_train/results/detections
+batviewer.py
+helper_fns_r.R
+bat_train/run_detector_r.R

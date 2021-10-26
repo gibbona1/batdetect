@@ -11,6 +11,7 @@ from sklearn.metrics import roc_curve, roc_auc_score, confusion_matrix
 import plotly.graph_objs as go
 import joblib
 from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
 
 import tensorflow as tf
 
@@ -117,7 +118,6 @@ if __name__ == '__main__':
     # train and test
     model  = cnn_all(train_ds, test_ds, params, input_shape, 'small', result_dir + test_set)
     y_pred = np.argmax(model.predict(test_ds), axis=-1)
-    y_true = [y for _, y in test_ds.unbatch()]
     y_pred_proba  = model.predict(test_ds)[:,1]
     fpr, tpr, _   = roc_curve(y_true,  y_pred_proba)
     prec_cnn_small, rec_cnn_small = prec_recall_curves(y_true,  y_pred_proba)
@@ -151,6 +151,33 @@ if __name__ == '__main__':
     pr_fig.add_trace(go.Scatter(x = rec_rf, y = prec_rf, 
                             mode = 'lines', name = 'Random Forest',
                             line = dict(color='forestgreen')))
+
+    #
+    # light gbm
+    if params.lightgbm:
+        print('\nLightGBM')
+        params.classification_model = 'lightgbm'
+        
+        lgb_model = LGBMClassifier(
+            learning_rate = params.learn_rate,
+            n_estimators  = params.trees,
+            max_depth     = params.depth)
+        rf_model = RandomForestClassifier(
+            n_jobs=-1,
+            n_estimators = params.trees,
+            max_depth    = params.depth,
+            min_samples_split = params.min_cnt)
+        print('Fitting LightGBM Classifier')
+        lgb_model.fit(train_features_flat, train_labels)
+        print('Done')
+        # compute precision recall
+        y_pred_proba_lgb = lgb_model.predict_proba(test_features_flat)[:,1]
+        prec_lgb, rec_lgb = prec_recall_curves(y_true,  y_pred_proba_lgb)
+        # save
+        joblib.dump(lgb_model, result_dir+test_set+"lightgbm.joblib")
+        pr_fig.add_trace(go.Scatter(x = rec_lgb, y = prec_lgb, 
+                                mode = 'lines', name = 'Light GBM',
+                                line = dict(color='lightyellow')))
 
     #
     # segment
