@@ -45,7 +45,7 @@ class SpecViewer (tk.Frame):
         #self.menubar.grid()
         self.audioframe=tk.Frame(self,bg='#fff')
         self.audioframe.pack(fill="x", side='top')
-#        self.audioframe.grid(sticky=tk.W+tk.E)
+        #self.audioframe.grid(sticky=tk.W+tk.E)
         self.audiofiles_lb = tk.Listbox(self.audioframe)
         self.audiofiles_lb.grid(row = 0, column=1, rowspan=4, sticky=tk.N+tk.S)
         self.audiofiles_sb = tk.Scrollbar(self.audioframe)
@@ -106,15 +106,16 @@ class SpecViewer (tk.Frame):
             self.analysisblock.columnconfigure(n,weight=1)
         
         self.imageframe=tk.Frame(self,bg='#fff')
-#        self.imageframe.grid(sticky=tk.N+tk.S+tk.W+tk.E)
+        #self.imageframe.grid(sticky=tk.N+tk.S+tk.W+tk.E)
         self.imageframe.pack(fill="both", expand=True)
         self.imageframe.bind('<Configure>', self.resize_image)
-        self.sview=tk.Canvas(self.imageframe, bg='#f00', height=400, width=800)
-#        self.sview.grid(sticky=tk.N+tk.S+tk.W+tk.E)#        
+        self.sview=tk.Canvas(self.imageframe, bg='#3288bd',#'#f00', 
+                             height=400, width=800)
+        #self.sview.grid(sticky=tk.N+tk.S+tk.W+tk.E)#        
         self.sview.pack(fill="both", expand=True)
     
     def replot_image(self):
-        cm=self.colormapchooser.get(self.colormapchooser.curselection())
+        cm=self.colormapchooser.curselection()
         self.colormap = getattr(plt.cm, cm)
         self.resize_image(1)
         
@@ -139,7 +140,6 @@ class SpecViewer (tk.Frame):
             self.plotlimits[1] = value+width
             #self.resize_image(1)
                 
-        
     def settimezoom (self, value):
         '''
         Sets the size of the time window.
@@ -162,6 +162,7 @@ class SpecViewer (tk.Frame):
             if self.plotlimits[0] != self.timestart_sld.get():
                 self.timestart_sld.set(self.plotlimits[0])
             #self.resize_image(1)
+    
     def setcolormap(self, value):
         '''
         Set the colormap for the spectrogram
@@ -177,6 +178,7 @@ class SpecViewer (tk.Frame):
 
         '''
         self.colormap = getattr(plt.cm, value)
+    
     def setfreqstart (self, value):
         '''
         Sets the start of the frequency window.
@@ -241,6 +243,7 @@ class SpecViewer (tk.Frame):
         '''
         self.master.update()
         print('Imagesize height {} width {}'.format(self.sview.winfo_height(), self.sview.winfo_width()))
+    
     def getspecsize(self):
         '''
         Calculates the size of the image for matplotlib to produce 
@@ -308,6 +311,7 @@ class SpecViewer (tk.Frame):
         None.
 
         '''    
+    
     def resize_image(self,event):
         '''
         Method bound to the <Configure> event of the outer frame
@@ -335,7 +339,7 @@ class SpecViewer (tk.Frame):
         Returns
         -------
         None.
-https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-memory-file-which-can-be-read-into-pil-image
+        https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-memory-file-which-can-be-read-into-pil-image
         '''
         if fileroot in self.audiofiles:
             self.loadaudiofile(os.path.join(self.audiodirectory, self.audiofiles[fileroot]['audio']))
@@ -348,7 +352,6 @@ https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-m
             else:
                 self.observations=None
             self.plot_analysis()    
-            
             
     def loadaudiofile(self, filename):
         '''
@@ -391,7 +394,6 @@ https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-m
             print('Error extracting header', e)
         # create spectrogram
         
-        
     def displayaudioinfo(self):
         '''
         Utility method to package audio information for display.
@@ -430,6 +432,8 @@ https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-m
         ax.set_ylim(self.plotlimits[2],self.plotlimits[3])
         ax.set_ylabel('Frequency (Hz)')
         ax.set_xlabel('Time (seconds)')
+        fig.colorbar(im).set_label('Intensity [dB]')
+
         self.fullrange=im.get_window_extent().extents
         buf = io.BytesIO()
         print('foobar2')
@@ -510,10 +514,10 @@ https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-m
         # range of data is in self.limits
         # area plottable is in self.imbounds (x0,y0,x1,y1)
         # virtual plot is in self.fullrange
-        if not hasattr(self, 'observations'):
+        if not hasattr(self, 'observations') or self.observations is None:
             return
         #example to show boundaries
-        px = int(self.imbounds[0])+5 #harddoded the offset for the image sizeas it is 10px smaller than the canvas. need to get the padding 
+        px = int(self.imbounds[0])+5 #hardcoded the offset for the image sizeas it is 10px smaller than the canvas. need to get the padding 
         py = int(self.imbounds[1])+5
         pw = int(self.imbounds[2]-self.imbounds[0])
         ph = int(self.imbounds[3]-self.imbounds[1])
@@ -534,9 +538,9 @@ https://stackoverflow.com/questions/8598673/how-to-save-a-pylab-figure-into-in-m
         #print('hasattr(self, "observations")', hasattr(self, 'observations'))
         #print('self.observations',self.observations)
         for o in self.observations:
-            col = '#f00'
+            col = '#3288bd' #'#f00'
             if o['score']<self.thresholdslider.get():
-                col='#00b'
+                col = '#66c2a5'#'#00b'
             pt = pb - o['score']*20
             xs = int(fx + fw * (o['start']-minx)/(maxx-minx)) +5
             xe = int(fx + fw * (o['end']-minx)/(maxx-minx)) +5
