@@ -9,9 +9,11 @@ from data_set_params import DataSetParams
 #import sys
 import tensorflow as tf
 #from tensorflow.keras import models, layers, regularizers
-from helper_fns import compute_features, nms_1d
-#import matplotlib.pyplot as plt
+from helper_fns import compute_features, nms_1d, gen_spectrogram, process_spectrogram
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 from scipy.ndimage.filters import gaussian_filter1d
+from scipy.interpolate import splev, splrep
 
 
 def read_audio(file_name, do_time_expansion, chunk_size, win_size):
@@ -46,11 +48,14 @@ def read_audio(file_name, do_time_expansion, chunk_size, win_size):
 
 def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
 
-    det_time = []
-    det_prob = []
+    det_time  = []
+    det_prob  = []
+    full_time = []
+    full_prob = []
 
     # files can be long so we split each up into separate (overlapping) chunks
     st_positions = np.arange(0, file_dur, params.chunk_size-params.window_size)
+    #st_positions = np.arange(0, file_dur, params.window_size)
     #print('st_positions',st_positions)
     for chunk_id, st_position in enumerate(st_positions):
 
@@ -61,6 +66,7 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
         audio_chunk = audio[st_pos:en_pos]
         
         # make predictions
+        chunk_dur   = audio_chunk.shape[0]/float(samp_rate)
         chunk_spec  = compute_features(audio_chunk, samp_rate, params)
         chunk_spec  = np.squeeze(chunk_spec)
         chunk_spec  = np.expand_dims(chunk_spec,-1)
@@ -70,7 +76,7 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
         if params.smooth_op_prediction:
             det_pred = gaussian_filter1d(det_pred, params.smooth_op_prediction_sigma, axis=0)
         
-        pos, prob = nms_1d(det_pred[:,0], params.nms_win_size, file_dur)
+        pos, prob = nms_1d(det_pred[:,1], params.nms_win_size, chunk_dur)
         prob      = prob[:,0]
         
         # remove predictions near the end (if not last chunk) and ones that are
@@ -78,12 +84,18 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
         if chunk_id == (len(st_positions)-1):
             inds = (prob >= detection_thresh)
         else:
-            inds = np.logical_and((prob >= detection_thresh), (pos < (params.chunk_size-(params.window_size/2.0))))
+            inds = (prob >= detection_thresh) & (pos < (params.chunk_size-(params.window_size/2.0)))
 
+        #print(full_time, full_prob)
         # convert detection time back into global time and save valid detections
         if pos.shape[0] > 0:
             det_time.append(pos[inds] + st_position)
             det_prob.append(prob[inds])
+            full_time.append(pos.tolist()[:] + st_position)
+            full_prob.append(prob[:])
+
+    full_time = np.hstack(full_time)
+    full_prob = np.hstack(full_prob)
 
     if len(det_time) > 0:
         det_time = np.hstack(det_time)
@@ -93,7 +105,7 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
         if do_time_expansion:
             det_time /= 10.0
 
-    return det_time, det_prob
+    return det_time, det_prob, full_time, full_prob
 
 
 if __name__ == "__main__":
@@ -105,27 +117,28 @@ if __name__ == "__main__":
 
     # params
     detection_thresh  = 0.80  # make this smaller if you want more calls detected
-    do_time_expansion = True  # set to True if audio is not already time expanded
+    do_time_expansion = False  # set to True if audio is not already time expanded
     save_res          = True  # save detections
 
     params = DataSetParams()
 
     # load data -
     data_dir   = 'data/labelled_data/'+params.test_set+'/test/' # path of the data that we run the model on
-    op_ann_dir = 'results/detections/'      # where we will store the outputs
+    op_ann_dir = 'results/detections/' # where we will store the outputs
     op_file_name_total = op_ann_dir + 'op_file.csv'
     if not os.path.isdir(op_ann_dir):
         os.makedirs(op_ann_dir)
 
     # load gpu lasagne model
-    model_dir  = 'results/bulgaria_big_cnn'
+    model_dir  = 'results/'+params.test_set+'_big_cnn.h5'
 
     det = tf.keras.models.load_model(model_dir)
 
-    params.chunk_size = 4.0
+
+    params.chunk_size = 3*params.window_size
 
     # read audio files
-    audio_files = glob.glob(data_dir + '*.wav')[:5]
+    audio_files = glob.glob(data_dir + '*.wav')#[:5]
     #print(audio_files)
     # loop through audio files
     results = []
@@ -142,12 +155,72 @@ if __name__ == "__main__":
 
         # run detector
         tic = time.time()
-        det_time, det_prob = run_detector(det, audio, file_dur, samp_rate, detection_thresh, params)
+        det_time, det_prob, full_time, full_prob = run_detector(det, audio, file_dur, samp_rate, detection_thresh, params)
         toc = time.time()
 
         print('  detection time', round(toc-tic, 3), '(secs)')
         num_calls = len(det_time)
         print('  ' + str(num_calls) + ' calls found')
+
+        #print(full_time, full_prob)
+
+        #plt.scatter(full_time, full_prob)
+        #plt.show()
+
+        font_size = params.axis_font_size
+
+        spectrogram = gen_spectrogram(audio, samp_rate, params.fft_win_length, params.fft_overlap,
+                                     crop_spec=params.crop_spec, max_freq=params.max_freq, min_freq=params.min_freq)
+        clean_spectrogram = process_spectrogram(spectrogram, denoise_spec=params.denoise, mean_log_mag=params.mean_log_mag, smooth_spec=params.smooth_spec)
+
+        def plot_spectrogram(spectrogram, ax):
+            ax.pcolormesh(spectrogram)
+            #ax.xaxis.set_visible(False)
+            ax.set_ylabel('Frequency (kHz)', fontsize=font_size)
+            ax.set_xticks([])
+            ax.set_yticks([])
+        
+        spl = splrep(full_time, full_prob)
+        xnew = np.linspace(full_time.min(), full_time.max(), 50)  
+        full_prob_smooth = splev(xnew, spl, ext=3)
+
+        fig, axes = plt.subplots(5, figsize=(5, 15))
+        timescale = np.arange(audio.shape[0])
+        axes[0].plot(timescale, audio)
+        #axes[0].set_title('Waveform')
+        axes[0].set_xlim([0, audio.shape[0]])
+        axes[0].set_ylabel('Amplitude', fontsize=font_size)
+        axes[0].set_xticks([])#.xaxis.set_visible(False)
+        axes[0].set_yticks([])
+        plot_spectrogram(spectrogram, axes[1])
+        #axes[1].set_title('Spectrogram')
+        plot_spectrogram(clean_spectrogram, axes[2])
+        #axes[2].set_title('Spectrogram, denoised')
+        #axes[3].plot(xnew, full_prob_smooth)
+        axes[3].plot(full_time, full_prob)
+        axes[3].scatter(det_time, det_prob, c='red')
+        axes[3].vlines(det_time, 0, det_prob, colors='red', linestyles='dashed')
+        axes[3].set_xlim([0, full_time.max()])
+        axes[3].set_xticks([])#.xaxis.set_visible(False)
+        axes[3].set_ylabel('Probability', fontsize=font_size)
+        axes[3].set_yticks([])
+        #axes[3].set_title('Probability of bat in window')
+        plot_spectrogram(clean_spectrogram, axes[4])
+        for timeX in (det_time/(audio.shape[0]/float(samp_rate)))*(spectrogram.shape[1]-params.chunk_size):
+            axes[4].add_patch(Rectangle((timeX, 0), 
+            width  = params.window_width, 
+            height = spectrogram.shape[0], 
+            facecolor="none", ec='yellow', lw=1))
+            #axes[4].vlines(timeX + params.window_width/2, 0, spectrogram.shape[0], colors='green', linestyles='dashed')
+        #axes[4].xaxis.set_visible(False)
+        axes[4].set_xticks([])
+        axes[4].set_yticks([])
+        #axes[4].set_title('Windows estimated to contain bats')
+        #plt.xticks([])
+        #fig.tight_layout()
+        axes[0].set_title('Bat Detector')
+        plt.xlabel("Time (s)")
+        plt.show()
 
         # save results
         if save_res:

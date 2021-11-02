@@ -13,12 +13,15 @@ class DataSetParams:
         self.detection()
 
         # data
-        self.test_set  = 'norfolk'  # can be one of: bulgaria, uk, norfolk
+        self.test_set  = 'uk'  # can be one of: bulgaria, uk, norfolk
         self.spec_dir  = ''
         self.audio_dir = ''
 
         self.save_features_to_disk   = False
         self.load_features_from_file = False
+
+        # plot axes font size
+        self.axis_font_size = 6
 
         # hard negative mining
         self.num_hard_negative_mining = 2  # if 0 there won't be any

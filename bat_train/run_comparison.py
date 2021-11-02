@@ -119,7 +119,7 @@ if __name__ == '__main__':
     fpr, tpr, _   = roc_curve(y_true,  y_pred_proba)
     prec_cnn_big, rec_cnn_big = prec_recall_curves(y_true,  y_pred_proba)
     # save CNN model to file
-    model.save(result_dir+test_set+'_small_cnn')
+    model.save(result_dir+test_set+'_small_cnn.h5')
     pr_fig.add_trace(go.Scatter(x = rec_cnn_big, y = prec_cnn_big, 
                                 mode = 'lines', name = 'CNN',
                                 line = dict(color='#1f77b4')))
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     fpr, tpr, _   = roc_curve(y_true,  y_pred_proba)
     prec_cnn_small, rec_cnn_small = prec_recall_curves(y_true,  y_pred_proba)
     # save CNN model to file
-    model.save(result_dir+test_set+'_big_cnn')
+    model.save(result_dir+test_set+'_big_cnn.h5')
     pr_fig.add_trace(go.Scatter(x = rec_cnn_small, y = prec_cnn_small, 
                             mode = 'lines', name = 'CNN<sub>Fast<sub>',
                             line = dict(color='black')))

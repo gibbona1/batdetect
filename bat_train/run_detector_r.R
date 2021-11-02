@@ -84,9 +84,12 @@ run_detector <- function(det, audio, file_dur, samp_rate, detection_thresh, para
       det_pred <- gaussian_filter1d(det_pred, params$smooth_op_prediction_sigma, axis=0)
     }
     
-    pos, prob <- nms_1d(det_pred[:,0], params$nms_win_size, file_dur)
+    pos_prob <- nms_1d(det_pred[,1], params$nms_win_size, file_dur)
+    pos_prob
+    pos  <- pos_prob$pos
+    prob <- pos_prob$prob
     #pos      = np.argmax(det_pred, axis=-1)
-    prob = prob[:,0]
+    prob = prob[,1]
     #print('pos.shape', pos.shape)
     #print('prob.shape', prob.shape)
     #prob     = det_pred[:, 0]
@@ -107,17 +110,19 @@ run_detector <- function(det, audio, file_dur, samp_rate, detection_thresh, para
     #print('inds.shape', inds.shape)
     #print('inds', inds)
     #print('st_position',st_position)
-    if pos.shape[0] > 0:
-      det_time.append(pos[inds] + st_position)
-    det_prob.append(prob[inds])
+    if(dim(pos)[1] > 0)
+      det_time = c(det_time, pos[inds] + st_position)
+    
+    det_prob$append(prob[inds])
   }
-  if len(det_time) > 0:
-    det_time = np.hstack(det_time)
-  det_prob = np.hstack(det_prob)
+  if(length(det_time) > 0)
+    det_time = np$hstack(det_time)
+  
+  det_prob = np$hstack(det_prob)
   
   # undo the effects of times expansion
-  if do_time_expansion:
-    det_time /= 10.0
+  if(do_time_expansion)
+    det_time = det_time/10.0
   
-  return det_time, det_prob
+  return(list(det_time, det_prob))
 }
