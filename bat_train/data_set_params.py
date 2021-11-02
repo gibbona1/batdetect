@@ -13,7 +13,7 @@ class DataSetParams:
         self.detection()
 
         # data
-        self.test_set  = 'uk'  # can be one of: bulgaria, uk, norfolk
+        self.test_set  = 'bulgaria'  # can be one of: bulgaria, uk, norfolk
         self.spec_dir  = ''
         self.audio_dir = ''
 

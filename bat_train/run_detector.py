@@ -175,50 +175,57 @@ if __name__ == "__main__":
 
         def plot_spectrogram(spectrogram, ax):
             ax.pcolormesh(spectrogram)
-            #ax.xaxis.set_visible(False)
-            ax.set_ylabel('Frequency (kHz)', fontsize=font_size)
+
+        def multiplot_post(ax, title = '', ylab = '', fontsize = font_size):
+            if title != '':
+                ax.set_title(title)
+            if ylab != '':
+                ax.set_ylabel(ylab)
+            ax.set_ylabel(ylab, fontsize=fontsize)
             ax.set_xticks([])
             ax.set_yticks([])
+            
         
         spl = splrep(full_time, full_prob)
         xnew = np.linspace(full_time.min(), full_time.max(), 50)  
         full_prob_smooth = splev(xnew, spl, ext=3)
 
         fig, axes = plt.subplots(5, figsize=(5, 15))
+        plt.suptitle('Bat Detector, ' + params.test_set.capitalize())
+        ## Audio wave
         timescale = np.arange(audio.shape[0])
         axes[0].plot(timescale, audio)
-        #axes[0].set_title('Waveform')
         axes[0].set_xlim([0, audio.shape[0]])
-        axes[0].set_ylabel('Amplitude', fontsize=font_size)
-        axes[0].set_xticks([])#.xaxis.set_visible(False)
-        axes[0].set_yticks([])
+        multiplot_post(axes[0], ylab = 'Amplitude')
+        axes[0].set_title(file_name, fontsize=5)
+
+        # Raw spectrogram
         plot_spectrogram(spectrogram, axes[1])
-        #axes[1].set_title('Spectrogram')
+        multiplot_post(axes[1], ylab = 'Frequency (kHz)')
+
+        # Cleaned spectrogram
         plot_spectrogram(clean_spectrogram, axes[2])
-        #axes[2].set_title('Spectrogram, denoised')
+        multiplot_post(axes[2], ylab = 'Frequency (kHz)')
+
+        # Probability of detection
         #axes[3].plot(xnew, full_prob_smooth)
         axes[3].plot(full_time, full_prob)
         axes[3].scatter(det_time, det_prob, c='red')
         axes[3].vlines(det_time, 0, det_prob, colors='red', linestyles='dashed')
         axes[3].set_xlim([0, full_time.max()])
-        axes[3].set_xticks([])#.xaxis.set_visible(False)
-        axes[3].set_ylabel('Probability', fontsize=font_size)
-        axes[3].set_yticks([])
-        #axes[3].set_title('Probability of bat in window')
+        multiplot_post(axes[3], ylab = 'Probability')
+        
+        # Spectrogram with boxes
         plot_spectrogram(clean_spectrogram, axes[4])
-        for timeX in (det_time/(audio.shape[0]/float(samp_rate)))*(spectrogram.shape[1]-params.chunk_size):
-            axes[4].add_patch(Rectangle((timeX, 0), 
-            width  = params.window_width, 
-            height = spectrogram.shape[0], 
-            facecolor="none", ec='yellow', lw=1))
+        box_times = (det_time/(audio.shape[0]/float(samp_rate)))*(spectrogram.shape[1])
+        for timeX in box_times:
+            axes[4].add_patch(Rectangle((timeX, 1), 
+                width  = params.window_width, 
+                height = spectrogram.shape[0]-1, 
+                facecolor="none", ec='yellow', lw=1))
             #axes[4].vlines(timeX + params.window_width/2, 0, spectrogram.shape[0], colors='green', linestyles='dashed')
-        #axes[4].xaxis.set_visible(False)
-        axes[4].set_xticks([])
-        axes[4].set_yticks([])
-        #axes[4].set_title('Windows estimated to contain bats')
-        #plt.xticks([])
-        #fig.tight_layout()
-        axes[0].set_title('Bat Detector')
+        multiplot_post(axes[4], ylab = 'Frequency (kHz)')
+
         plt.xlabel("Time (s)")
         plt.show()
 
