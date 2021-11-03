@@ -13,8 +13,6 @@ from helper_fns import compute_features, nms_1d, gen_spectrogram, process_spectr
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from scipy.ndimage.filters import gaussian_filter1d
-from scipy.interpolate import splev, splrep
-
 
 def read_audio(file_name, do_time_expansion, chunk_size, win_size):
 
@@ -44,7 +42,6 @@ def read_audio(file_name, do_time_expansion, chunk_size, win_size):
     audio_pad  = np.hstack((audio, np.zeros(int(diff*samp_rate))))
 
     return False, audio_pad, file_dur, samp_rate, samp_rate_orig
-
 
 def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
 
@@ -107,7 +104,6 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
 
     return det_time, det_prob, full_time, full_prob
 
-
 if __name__ == "__main__":
     """
     This code takes a directory of audio files and runs a CNN based bat call
@@ -135,7 +131,7 @@ if __name__ == "__main__":
     det = tf.keras.models.load_model(model_dir)
 
 
-    params.chunk_size = 3*params.window_size
+    params.chunk_size = 4.0
 
     # read audio files
     audio_files = glob.glob(data_dir + '*.wav')#[:5]
@@ -162,11 +158,7 @@ if __name__ == "__main__":
         num_calls = len(det_time)
         print('  ' + str(num_calls) + ' calls found')
 
-        #print(full_time, full_prob)
-
-        #plt.scatter(full_time, full_prob)
-        #plt.show()
-
+        # plot subplots
         font_size = params.axis_font_size
 
         spectrogram = gen_spectrogram(audio, samp_rate, params.fft_win_length, params.fft_overlap,
@@ -176,28 +168,23 @@ if __name__ == "__main__":
         def plot_spectrogram(spectrogram, ax):
             ax.pcolormesh(spectrogram)
 
-        def multiplot_post(ax, title = '', ylab = '', fontsize = font_size):
+        def multiplot_post(ax, title = '', ylab = '', fontsize = font_size, no_x = True, no_y = True):
             if title != '':
-                ax.set_title(title)
+                ax.set_title(title, fontsize=fontsize)
             if ylab != '':
                 ax.set_ylabel(ylab)
-            ax.set_ylabel(ylab, fontsize=fontsize)
-            ax.set_xticks([])
-            ax.set_yticks([])
+            if no_x:
+                ax.set_xticks([])
+            if no_y:
+                ax.set_yticks([])
             
-        
-        spl = splrep(full_time, full_prob)
-        xnew = np.linspace(full_time.min(), full_time.max(), 50)  
-        full_prob_smooth = splev(xnew, spl, ext=3)
-
         fig, axes = plt.subplots(5, figsize=(5, 15))
         plt.suptitle('Bat Detector, ' + params.test_set.capitalize())
         ## Audio wave
         timescale = np.arange(audio.shape[0])
         axes[0].plot(timescale, audio)
         axes[0].set_xlim([0, audio.shape[0]])
-        multiplot_post(axes[0], ylab = 'Amplitude')
-        axes[0].set_title(file_name, fontsize=5)
+        multiplot_post(axes[0], ylab = 'Amplitude', title = file_name, fontsize = 5)
 
         # Raw spectrogram
         plot_spectrogram(spectrogram, axes[1])
@@ -215,6 +202,9 @@ if __name__ == "__main__":
         axes[3].set_xlim([0, full_time.max()])
         multiplot_post(axes[3], ylab = 'Probability')
         
+        x_ticks = np.linspace(0, spectrogram.shape[1], num = 10)
+        x_labs  = np.round(np.linspace(0, len(audio)/samp_rate, num = 10), 2)
+
         # Spectrogram with boxes
         plot_spectrogram(clean_spectrogram, axes[4])
         box_times = (det_time/(audio.shape[0]/float(samp_rate)))*(spectrogram.shape[1])
@@ -224,7 +214,9 @@ if __name__ == "__main__":
                 height = spectrogram.shape[0]-1, 
                 facecolor="none", ec='yellow', lw=1))
             #axes[4].vlines(timeX + params.window_width/2, 0, spectrogram.shape[0], colors='green', linestyles='dashed')
-        multiplot_post(axes[4], ylab = 'Frequency (kHz)')
+        multiplot_post(axes[4], ylab = 'Frequency (kHz)', no_x = False)
+        axes[4].set_xticks(ticks=x_ticks)
+        axes[4].set_xticklabels(labels=x_labs)
 
         plt.xlabel("Time (s)")
         plt.show()
