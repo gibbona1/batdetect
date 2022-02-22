@@ -21,7 +21,7 @@ class DataSetParams:
         self.load_features_from_file = False
 
         # plot axes font size
-        self.axis_font_size = 6
+        self.axis_font_size = 4
 
         # hard negative mining
         self.num_hard_negative_mining = 2  # if 0 there won't be any

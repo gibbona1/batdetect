@@ -23,6 +23,7 @@ def read_audio(file_name, do_time_expansion, chunk_size, win_size):
         print('  Error reading file')
         return True, None, None, None, None
 
+    print(file_name)
     # convert to mono if stereo
     if len(audio.shape) == 2:
         print('  Warning: stereo file. Just taking right channel.')
@@ -51,7 +52,8 @@ def run_detector(det, audio, file_dur, samp_rate, detection_thresh, params):
     full_prob = []
 
     # files can be long so we split each up into separate (overlapping) chunks
-    st_positions = np.arange(0, file_dur, params.chunk_size-params.window_size)
+    print("start = ", 0, "stop = ", file_dur, "step = ",params.chunk_size-params.window_size)
+    st_positions = np.arange(start = 0, stop = file_dur, step = params.chunk_size-params.window_size)
     #st_positions = np.arange(0, file_dur, params.window_size)
     #print('st_positions',st_positions)
     for chunk_id, st_position in enumerate(st_positions):
@@ -131,10 +133,11 @@ if __name__ == "__main__":
     det = tf.keras.models.load_model(model_dir)
 
 
-    params.chunk_size = 4.0
+    params.chunk_size = 0.90#1.75*params.window_size
 
     # read audio files
     audio_files = glob.glob(data_dir + '*.wav')#[:5]
+    #audio_files = [af for af in audio_files if af.endswith('0004_0008.wav')]#'data/labelled_data/norfolk/test\SURVEYTF6315_20150731_232300_tif_0004_0008.wav'
     #print(audio_files)
     # loop through audio files
     results = []
@@ -168,17 +171,17 @@ if __name__ == "__main__":
         def plot_spectrogram(spectrogram, ax):
             ax.pcolormesh(spectrogram)
 
-        def multiplot_post(ax, title = '', ylab = '', fontsize = font_size, no_x = True, no_y = True):
+        def multiplot_post(ax, title = '', ylab = '', fontsize = font_size, no_x = True, no_y = True, ylabsize = 5):
             if title != '':
                 ax.set_title(title, fontsize=fontsize)
             if ylab != '':
-                ax.set_ylabel(ylab)
+                ax.set_ylabel(ylab, fontsize=ylabsize)
             if no_x:
                 ax.set_xticks([])
             if no_y:
                 ax.set_yticks([])
             
-        fig, axes = plt.subplots(5, figsize=(5, 15))
+        fig, axes = plt.subplots(5, figsize=(5, 20))
         plt.suptitle('Bat Detector, ' + params.test_set.capitalize())
         ## Audio wave
         timescale = np.arange(audio.shape[0])
